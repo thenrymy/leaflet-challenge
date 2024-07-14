@@ -2,10 +2,19 @@
 let queryUrl =
   "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
 
-// // Perform a GET request to the query URL.
+let tectonicPlatesUrl =
+  "https://raw.githubusercontent.com/fraxen/tectonicplates/339b0c56563c118307b1f4542703047f5f698fae/GeoJSON/PB2002_plates.json";
+
+// Perform a GET request to the query URL.
 d3.json(queryUrl).then(
   // 1. Pass the features to a createFeatures() function:
   createFeatures
+);
+
+// Perform a GET request to the tectonic plates URL.
+d3.json(tectonicPlatesUrl).then(
+  // Pass the data to a createTectonicPlates() function:
+  createTectonicPlates
 );
 
 // Function to get color for earthquakes depth
@@ -39,10 +48,10 @@ function createFeatures(earthquakeData) {
     // Log each earthquake's data to understand its structure
     console.log("Earthquake data:", feature);
     // For each earthquake, create a marker, and bind a popup with the earthquake's magnitude, location, and depth.
-    let quakeMarker = L.circleMarker(
+    let quakeMarker = L.circle(
       [feature.geometry.coordinates[1], feature.geometry.coordinates[0]],
       {
-        radius: Math.sqrt(feature.properties.mag) * 7.5,
+        radius: feature.properties.mag * 50000,
         fillColor: getColor(feature.geometry.coordinates[2]),
         fillOpacity: 1,
         color: "black",
@@ -66,6 +75,23 @@ function createFeatures(earthquakeData) {
   createMap(L.layerGroup(quakeMarkers));
 }
 
+// 2.1 Function to create tectonic plates layer
+function createTectonicPlates(plateData) {
+  console.log("Tectonic Plates data:", plateData);
+  let tectonicPlates = L.geoJSON(plateData, {
+    style: {
+      color: "orange",
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0,
+    },
+  });
+  tectonicPlatesLayer = tectonicPlates; // Save for later use in createMap()
+}
+
+// Create a variable to hold the tectonic plates layer
+let tectonicPlatesLayer;
+
 // 3. createMap() takes the earthquake data and incorporates it into the visualization:
 function createMap(earthquakes) {
   // Log the earthquakes layer to verify the layer group
@@ -78,16 +104,27 @@ function createMap(earthquakes) {
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }
   );
+
+  let topo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+    attribution:
+      'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+  });
+  // Create a baseMaps object.
+  let baseMaps = {
+    "Street Map": street,
+    "Topographic Map": topo,
+  };
   // Create an overlayMaps object to hold the earthquakes layer.
   let overlayMaps = {
-    earthquakes: earthquakes,
+    "Tectonic Plates": tectonicPlatesLayer,
+    Earthquakes: earthquakes,
   };
   // Create the map object with options.
   let myMap = L.map("map", {
     // Position map to show the Asia, Africa, and Australia continents.
-    center: [0, 100],
+    center: [0, 0],
     zoom: 3,
-    layers: [street, earthquakes],
+    layers: [street, tectonicPlatesLayer, earthquakes],
   });
   // Set up the legend.
   var legend = L.control({ position: "bottomright" });
@@ -111,4 +148,10 @@ function createMap(earthquakes) {
   };
   // Adding the legend to the map
   legend.addTo(myMap);
+  // Set up control
+  var layerControl = L.control.layers(baseMaps, overlayMaps, {
+    collapsed: false,
+  });
+  // Adding the control to the map
+  layerControl.addTo(myMap);
 }

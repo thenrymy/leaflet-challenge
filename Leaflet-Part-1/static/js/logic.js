@@ -39,10 +39,10 @@ function createFeatures(earthquakeData) {
     // Log each earthquake's data to understand its structure
     console.log("Earthquake data:", feature);
     // For each earthquake, create a marker, and bind a popup with the earthquake's magnitude, location, and depth.
-    let quakeMarker = L.circleMarker(
+    let quakeMarker = L.circle(
       [feature.geometry.coordinates[1], feature.geometry.coordinates[0]],
       {
-        radius: Math.sqrt(feature.properties.mag) * 7.5,
+        radius: feature.properties.mag * 50000,
         fillColor: getColor(feature.geometry.coordinates[2]),
         fillOpacity: 1,
         color: "black",
